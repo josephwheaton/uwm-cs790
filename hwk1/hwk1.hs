@@ -5,11 +5,11 @@
 -- todo: Question 1
 range from to count =
   let 
-    total = fromIntegral(count)
-    step = (to - from) / total
+    total = round(count) -- ? this is done because of type inference in the main do which inferred count as an integer here and a realfrac elsewhere
+    step = (to - from) / count
     stepper currentCount = 
       if 
-        currentCount < count 
+        currentCount < total
       then 
         from + fromIntegral(currentCount) * step : stepper (currentCount + 1) 
       else 
@@ -58,7 +58,7 @@ main =
   do
     let n = 64
     let s = map (\t -> sin(10*2*pi*t) + sin(20*2*pi*t)/2) $ range 0 1 n
-    -- let result = map (\x -> x/n) $ absolute $ dft s -- ! this didn't work
-    let result = map (\x -> x/64) $ absolute $ dft s
+    let result = map (\x -> x/n) $ absolute $ dft s -- ! this didn't work
+    -- let result = map (\x -> x/64) $ absolute $ dft s
     print(rd 3 s)
     print(rd 2 result)

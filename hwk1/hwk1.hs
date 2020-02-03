@@ -1,3 +1,7 @@
+-- ? In some places I was getting the hang of (x:xs) and didn't use them, instead
+-- ? used a stepper function, didn't bother going back and seeing if I could refactor with (x:xs)
+-- ? as it was already working
+
 -- todo: Question 1
 range from to count =
   let 
@@ -30,25 +34,26 @@ absolute lst =
 -- todo: Question 4
 dft lst = 
   let 
-    len = length lst
-    idxList = lst `zip` [0..(len - 1)]
+    len = length lst -- ? save off for convenience
+    idxList = lst `zip` [0..(len - 1)] -- ? give list items an index
     calcReal c = cos(2.0 * pi * c)
     calcImaginary c = sin(2.0 * pi * c)
     rat k n m = fromIntegral k * fromIntegral n / fromIntegral m
-    summand k f m ((x, n) : t) = 
+    summand k f m ((x, n) : t) = -- ? get list of summands
       let 
         calc (xi, ni) = (xi * f (rat k ni m))
       in 
         calc (x, n) : map (\(x, n) -> calc (x, n)) t
     summand _ _ _ [] = []
-    stepper k f g idxList
+    stepper k f g idxList -- ? we want to sum the entire list each time with different k
       | k < len =
-        (sum (summand k f len idxList), sum (summand k g len idxList)) : stepper (k + 1) f g idxList -- ? we want to sum the entire list each time with diff k
+        (sum (summand k f len idxList), sum (summand k g len idxList)) : stepper (k + 1) f g idxList -- ? sum summands for real and imaginary part, create list of tuples and append k+1 onto it
       | otherwise = 
         []
   in 
     stepper 0 calcReal calcImaginary idxList
 
+-- todo: Testing
 main = 
   do
     let n = 64

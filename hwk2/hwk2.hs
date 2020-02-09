@@ -1,90 +1,63 @@
 import Data.Time
 
--- ? functions from hwk1
-range from to count =
-  let 
-    total = round(count) -- ? this is done because of type inference in the main do which inferred count as an integer here and a realfrac elsewhere
-    step = (to - from) / count
-    stepper currentCount = 
-      if 
-        currentCount < total
-      then 
-        from + fromIntegral(currentCount) * step : stepper (currentCount + 1) 
-      else 
-        []
-  in 
-    stepper 0
+-- ? functions from solutions to hwk1
+range from to count = next from count
+  where step = (to - from) / count
+        next from count 
+          | count <= 0 = []
+          | otherwise  = from : next (from+step) (count-1)
 
-rd n x = 
-  let 
-    fix m y = fromIntegral(round $ y * 10^m) / 10^m
-  in 
-    map (fix n) x
+absolute [] = []
+absolute ((r,i) : rest) = sqrt(r*r + i*i) : absolute(rest)
 
-absolute lst =
-  let 
-    absComplex (a,b) = sqrt(a^^2 + b^^2)
-  in 
-    map absComplex lst
+rd _ [] = []
+rd n (a:b) = f a : rd n b
+  where f x = fromIntegral (round (c * x)) / c
+        c = 10 ^ n
 
-dft :: [Double] -> [(Double, Double)]
-dft lst = 
-  let 
-    len = length lst -- ? save off for convenience
-    idxList = lst `zip` [0..(len - 1)] -- ? give list items an index
-    calcReal c = cos(2.0 * pi * c)
-    calcImaginary c = sin(2.0 * pi * c)
-    rat k n m = fromIntegral k * fromIntegral n / fromIntegral m
-    summand k f m ((x, n) : t) = -- ? get list of summands
-      let 
-        calc (xi, ni) = (xi * f (rat k ni m))
-      in 
-        calc (x, n) : map (\(x, n) -> calc (x, n)) t
-    summand _ _ _ [] = []
-    stepper k f g idxList -- ? we want to sum the entire list each time with different k
-      | k < len =
-        (sum (summand k f len idxList), sum (summand k g len idxList)) : stepper (k + 1) f g idxList -- ? sum summands for real and imaginary part, create list of tuples and append k+1 onto it
-      | otherwise = 
-        []
-  in 
-    stepper 0 calcReal calcImaginary idxList
+dft x =
+  let n = fromIntegral $ length x
+      index = range 0 n n
+      xn = x `zip` index
+      f [] = []
+      f (k:rest) = (sum r, sum i) : f rest
+        where (r, i) = unzip $ factor xn
+              factor [] = []
+              factor ((xi, j) : rest) = (xi * cos y, -xi * sin y) : factor rest
+                where y = 2 * pi * j * k / n            
+  in
+    f index
 
 -- todo: implement split
 -- ? splits a list by even and odd indices
 split :: [a] -> ([a], [a])
-split lst = 
-  let 
-    len = length lst
-    idxLst = lst `zip` [0..(len - 1)]
-    splitter [] (evens, odds) = (evens, odds)
-    splitter ((val, idx) : t) (evens, odds)
-      | idx `mod` 2 == 0 = 
-        splitter t (val:evens, odds)
-      | otherwise =  
-        splitter t (evens, val:odds)
-  in splitter idxLst ([], [])
+split [] = ([], [])
+split [even] = ([even], [])
+split (even:odd:t) = (even:evens, odd:odds) where (evens, odds) = split t
 
 -- todo: implement fft
 fft :: [Double] -> [(Double, Double)]
 fft lst
-    | len <= 16 = -- ! base case, call dft
+    | length lst <= 16 = -- ! base case, call dft
       dft(lst)
     | otherwise =
       let
-        splitLst = split lst
-        evens = fst splitLst
-        odds = snd splitLst
-        real :: Int -> Double
-        real k = cos(-2.0 * pi * fromIntegral k / fromIntegral len)
-        imaginary :: Int -> Double
-        imaginary k = sin(-2.0 * pi * fromIntegral k / fromIntegral len)
+        len = length lst
+        (evens, odds) = split lst
+        fevens = fft evens
+        fodds = fft odds
         fft' :: [(Double, Double)] -> [(Double, Double)] -> Int -> [(Double, Double)]
-        fft' ((a,b) : t1) ((c,d) : t2) k
-          | k < len `div` 2 =
-            firstHalf a b c d : (fft' t1 t2 (k+1))
-          | k < len && k >= len `div` 2 =
-            secondHalf a b c d : (fft' t1 t2 (k+1))
-          | otherwise = []
+        fft' [] [] _ = -- ? list exhausted
+          []
+        -- fft' [(a,b)] [] _ = -- ? remainder when odd number of elements
+        --   [(a,b)]
+        fft' ((a,b) : t1) ((c,d) : t2) k -- ? recursive step
+          | k >= 0 && k < (len `div` 2) =
+            (firstHalf a b c d) : (fft' t1 t2 (k+1)) -- ? definition for the first half of the list
+          | k >= (len `div` 2) && k < len =
+            (secondHalf a b c d) : (fft' t1 t2 (k+1)) -- ? definition for the second half of the list
+          | otherwise = -- ? k less than zero or greater than or equal to N (len)
+            []
           where
             u = real k
             v = imaginary k
@@ -92,9 +65,13 @@ fft lst
             firstHalf a b c d = (a + (u * c) - (v * d), b + (u * d) + (v * c))
             secondHalf :: Double -> Double -> Double -> Double -> (Double, Double)
             secondHalf a b c d = (a - (u * c) + (v * d), b - (u * d) - (v * c))
+            real :: Int -> Double
+            real k = cos(-2.0 * pi * fromIntegral k / fromIntegral len)
+            imaginary :: Int -> Double
+            imaginary k = sin(-2.0 * pi * fromIntegral k / fromIntegral len)
       in
-        fft' (fft evens) (fft odds) 0
-    where len = length lst
+        (fft' fevens fodds 0) ++ (fft' fevens fodds $ len `div` 2) -- ? join prior and latter half of list
+
 
 main = do 
   let n = 2^8 
@@ -105,10 +82,12 @@ main = do
   let dft1 = map (\x -> x/n) $ absolute $ dft s1 
   print(rd 2 dft1) 
   end <- getCurrentTime 
+  print(length dft1)
   print (diffUTCTime end start)
 
   start2 <- getCurrentTime 
   let fft1 = map (\x -> x/n) $ absolute $ fft s1 
   print(rd 2 fft1) 
-  end2 <- getCurrentTime 
+  end2 <- getCurrentTime
+  print(length fft1)
   print (diffUTCTime end2 start2)

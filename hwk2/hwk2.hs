@@ -43,34 +43,30 @@ fft lst
     | otherwise =
       let
         len = length lst
+        half = len `div` 2
         (evens, odds) = split lst
         fevens = fft evens
         fodds = fft odds
         fft' :: [(Double, Double)] -> [(Double, Double)] -> Int -> [(Double, Double)]
-        fft' [] [] _ = -- ? list exhausted
-          []
-        -- fft' [(a,b)] [] _ = -- ? remainder when odd number of elements
-        --   [(a,b)]
+        fft' [] [] _ = []
         fft' ((a,b) : t1) ((c,d) : t2) k -- ? recursive step
-          | k >= 0 && k < (len `div` 2) =
+          | k >= 0 && k < half =
             (firstHalf a b c d) : (fft' t1 t2 (k+1)) -- ? definition for the first half of the list
-          | k >= (len `div` 2) && k < len =
+          | k >= half && k < len =
             (secondHalf a b c d) : (fft' t1 t2 (k+1)) -- ? definition for the second half of the list
           | otherwise = -- ? k less than zero or greater than or equal to N (len)
             []
           where
-            u = real k
-            v = imaginary k
             firstHalf :: Double -> Double -> Double -> Double -> (Double, Double)
-            firstHalf a b c d = (a + (u * c) - (v * d), b + (u * d) + (v * c))
+            firstHalf a b c d = (a + (real k * c) - (imaginary k * d), b + (real k * d) + (imaginary k * c))
             secondHalf :: Double -> Double -> Double -> Double -> (Double, Double)
-            secondHalf a b c d = (a - (u * c) + (v * d), b - (u * d) - (v * c))
+            secondHalf a b c d = (a - (real (k - half) * c) + (imaginary (k - half) * d), b - (real (k - half) * d) - (imaginary (k - half) * c))
             real :: Int -> Double
             real k = cos(-2.0 * pi * fromIntegral k / fromIntegral len)
             imaginary :: Int -> Double
             imaginary k = sin(-2.0 * pi * fromIntegral k / fromIntegral len)
       in
-        (fft' fevens fodds 0) ++ (fft' fevens fodds $ len `div` 2) -- ? join prior and latter half of list
+        (fft' fevens fodds 0) ++ (fft' fevens fodds half) -- ? join prior and latter half of list
 
 
 main = do 

@@ -57,6 +57,8 @@ fft lst
           | otherwise = -- ? k less than zero or greater than or equal to N (len)
             []
           where
+            -- Ek = (a,b) = (er,ei)
+            -- Ok = (c,d) = (or,oi)
             firstHalf :: Double -> Double -> Double -> Double -> (Double, Double)
             firstHalf a b c d = (a + (real k * c) - (imaginary k * d), b + (real k * d) + (imaginary k * c))
             secondHalf :: Double -> Double -> Double -> Double -> (Double, Double)
@@ -67,7 +69,6 @@ fft lst
             imaginary k = sin(-2.0 * pi * fromIntegral k / fromIntegral len)
       in
         (fft' fevens fodds 0) ++ (fft' fevens fodds half) -- ? join prior and latter half of list
-
 
 main = do 
   let n = 2^8 

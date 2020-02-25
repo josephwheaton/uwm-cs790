@@ -10,7 +10,6 @@ instance Show a => Show (Vec a) where
 -- todo: 2. Num class
 instance Num a => Num (Vec a) where
   Vec a1 + Vec a2 = Vec $ zipWith (+) a1 a2
-
   Vec a1 - Vec a2 = Vec $ zipWith (-) a1 a2
   Vec a1 * Vec a2 = Vec $ zipWith (*) a1 a2
   negate (Vec a) = Vec $ map negate a

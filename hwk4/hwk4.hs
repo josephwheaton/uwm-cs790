@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -fno-warn-incomplete-uni-patterns #-}
 import Data.Complex
 import Data.Time
 import GHC.Base (liftA2)
@@ -27,8 +28,7 @@ instance Functor Vec where
 -- * perform on the basis of the result of a previous computation.
 instance Applicative Vec where
   pure a = Vec $ repeat a
-  (Vec fs) <*> (Vec xs) = Vec $ [f x | f <- fs, x <- xs]
-  liftA2 f (Vec a) (Vec b) = f <$> (Vec a) <*> (Vec b)
+  liftA2 f (Vec a) (Vec b) = Vec $ zipWith f a b
 
 --  todo: c) Semigroup class, implement the <> operator
 -- * Semigroup: a type class that represents a set with an associative binary operation,
@@ -75,21 +75,20 @@ instance Floating a => Floating (Vec a) where
   acosh (Vec a) = acosh <$> (Vec a)
   atanh (Vec a) = atanh <$> (Vec a)
 
--- todo: 3. Simplify implementation of dft and fft to leverage Vec Double and 
+-- todo: 3. Simplify implementation of dft and fft to leverage Vec Double and
 -- todo:    Vec (Complex Double)
 range :: Double -> Double -> Double -> [Double]
 range from to count = next from count
   where step = (to - from) / count
-        next from count 
+        next from count
           | count <= 0 = []
-          | otherwise  = from : next (from+step) (count-1)
+          | otherwise  = from : next (from + step) (count - 1)
 
 absolute :: Vec (Complex Double) -> Vec Double
-absolute (Vec []) = (Vec [])
 absolute (Vec a) = realPart <$> abs <$> (Vec a)
 
 rd :: Int -> Vec Double -> Vec Double
-rd n (Vec a) = 
+rd n (Vec a) =
   f <$> (Vec a)
   where f x = fromIntegral (round (c * x)) / c
         c = 10 ^ n
@@ -101,11 +100,12 @@ dft x =
       xn = x `zip` index
       f k = sum c
             where c = factor <$> xn
-                  factor (xi, j) = let y = 2 * pi * j * k / n             
+                  factor (xi, j) = let y = 2 * pi * j * k / n
                                    in (xi * cos y) :+ (-xi * sin y)
   in
-      Vec $ f <$> index
+      Vec $ f <$> index -- ? don't really see the point in not just returning the wrapped list
 
+-- ? used personal implementation from hwk2
 fft :: [Double] -> Vec (Complex Double)
 fft lst
     | length lst <= 16 = -- ! base case, call dft
@@ -144,7 +144,6 @@ fft lst
     split (even:odd:t) = (even:evens, odd:odds) where (evens, odds) = split t
 
 -- todo: Testing
-{-
 main = do
   let n = 2^8
   let s1 = map (\x -> sin(20*pi*x) + sin(40*pi*x)/2) $ range 0 1 n
@@ -158,4 +157,3 @@ main = do
   print(rd 2 fft1)
   end2 <- getCurrentTime
   print (diffUTCTime end2 start2)
--}

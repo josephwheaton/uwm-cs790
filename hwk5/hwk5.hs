@@ -6,7 +6,6 @@ import GHC.Base (liftA2)
 newtype Vec a = Vec {runVec :: [a]}
 
 -- todo: Reader monad
--- ! todo figure out how this works
 newtype Reader r a = Reader {runReader :: r -> a}
 
 -- todo: 1. We will use the type alias Signal
@@ -128,18 +127,30 @@ low_pass' freq v =
 -- todo: 6. Implement FFT and IFFT, reusing the twiddle factor(s)
 -- todo: 6. a) fft
 fft :: Signal -> Reader Signal Signal
+-- ! fix me
 fft v = mempty
+  | n <= 1 = v
+  | otherwise =
+    let 
+      (even, odd) = split x
+      (e, o) = (fft even, fft odd)
+      -- ! calculate twiddle factors
 
+    in lower <> upper
+  where n = length x
+    split [] = ([], [])
+    split [a] = ([a], [])
+    split (a:b:c) = (a:x, b:y)
+      where (x,y) = split c
 
 -- todo: 6. b) ifft
 ifft :: Signal -> Reader Signal Signal
-ifft v = (/(n :+ 0.0)) <$> conjugate <$> fft (conjugate <$> v)
-  where
-    n :: Double
-    n = fromIntegral $ length' v
+-- ! fix me
+ifft v = mempty
 
 -- todo: 6. c) Implement low_pass using the new fft and ifft
 low_pass :: Int -> Signal -> Signal
+-- ! fix me
 low_pass freq v =
   let n = length' v
   in ifft (fft v * mask freq n)
@@ -147,10 +158,9 @@ low_pass freq v =
 -- todo: Testing
 main = do
   let n = fromIntegral 2^8
-  let s1 = fmap (\x -> sin(20*pi*x) + sin(40*pi*x)/2) $ Vec $ range 0 1 n
+  let s1 = fmap (\x -> sin(20*pi*x) + sin(40*pi*x)/2) $ Vec $ range 0 1 n 
   print(rd 3 s1)
 
-  print(dft $ realV s1)
-  print(mask 14 (length' s1))
-  print(dft $ realV s1 * mask 15 (length' s1))
   print(rd 3 $ fmap (\(r:+_) -> r) $ low_pass' 15 $ realV s1)
+
+  print(rd 3 $ fmap (\(r:+_) -> r) $ low_pass 15 $ realV s1)

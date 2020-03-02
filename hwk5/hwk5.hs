@@ -126,6 +126,12 @@ low_pass' freq v =
 
 -- todo: 6. Implement FFT and IFFT, reusing the twiddle factor(s)
 -- todo: 6. a) fft
+-- * Monad: a function from values to computations. Generalizes ordinary functions. Monads define an identity and bind function.
+-- * return : identity, similar to pure or id
+-- * (>>=)  : bind or inverse application, similar to (&), REQUIRED
+-- * (<=<)  : composition, similar to (.) 
+-- * (=<<)  : application, similar to ($) 
+-- * (>>)   : sequence
 fft :: Signal -> Reader Signal Signal
 -- ! fix me
 fft v = mempty
@@ -135,7 +141,6 @@ fft v = mempty
       (even, odd) = split x
       (e, o) = (fft even, fft odd)
       -- ! calculate twiddle factors
-
     in lower <> upper
   where n = length x
     split [] = ([], [])

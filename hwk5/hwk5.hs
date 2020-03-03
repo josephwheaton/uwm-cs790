@@ -141,7 +141,11 @@ fft v = mempty
       (even, odd) = split x
       (e, o) = (fft even, fft odd)
       -- ! calculate twiddle factors
-    in lower <> upper
+      t = -2 * pi / (fromIntegral n)
+      k = Vec [0..]
+
+      p = exp( imagV $ k * pure t ) * o
+    in (lower + p) <> (upper - p)
   where n = length x
     split [] = ([], [])
     split [a] = ([a], [])

@@ -1,12 +1,24 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 import Data.Complex
-import Data.Time
 import GHC.Base (liftA2)
 
 -- todo: Reuse type-class instances of Vec, defining Vec as below:
 newtype Vec a = Vec {runVec :: [a]}
 
 -- todo: Reader monad
-newtype Reader r a = Reader {runReader :: r -> a}
+newtype Reader r a = Reader {runReader :: r -> a} deriving (Functor, Applicative, Monad)
+
+class Monad m => MonadReader r m | m -> r where
+  ask :: m r
+  local :: (r -> r) -> m a -> m a
+
+instance MonadReader r (Reader r) where
+  ask = Reader id
+  local f m = Reader $ runReader m . f
+
 
 -- todo: 1. We will use the type alias Signal
 type Signal = Vec (Complex Double)
@@ -15,7 +27,6 @@ type Signal = Vec (Complex Double)
 instance Show a => Show (Vec a) where
   show (Vec lst) = "[" ++ drop 1 lst' ++ "]"
     where lst' = mconcat $ map (\x -> " " ++ show x) lst
-
 
 instance Functor Vec where
   fmap f (Vec a) = Vec $ map f a
@@ -132,37 +143,85 @@ low_pass' freq v =
 -- * (<=<)  : composition, similar to (.) 
 -- * (=<<)  : application, similar to ($) 
 -- * (>>)   : sequence
+
+split :: [a] -> ([a], [a])
+split [] = ([], [])
+split [a] = ([a], [])
+split (a:b:c) = (a:x, b:y)
+  where (x,y) = split c
+
 fft :: Signal -> Reader Signal Signal
 -- ! fix me
-fft v = mempty
-  | n <= 1 = v
+fft v = 
+  do
+  tf <- ask
+  local (\ctx -> Vec $ fst $ split (runVec $ ctx)) ask
+  return $ 
+    if (length' v) == 1 then v
+    else mempty
+    -- let
+    --   (es, os) = split (runVec v)
+    --   (even, odd) = (Vec es, Vec os)
+    --   (e, o) = (fft even, fft odd)
+    --   p = tf * o
+    -- in (e + p) <> (e - p)
+
+
+
+  -- local (\_ -> Vec $ fst $ split (runVec tf))
+  -- return $ fft' v tf
+
+-- ? fft' twiddle factors
+twiddle' :: Double -> Signal
+twiddle' n = 
+  let
+    m = n / 2
+    ns = range 0 m m
+    y = -2.0 * pi / n
+  in Vec $ (\ni -> exp(0.0 :+ (ni * y))) <$> ns
+
+fft' :: Signal -> Signal -> Signal
+fft' v tf
+  | n == 1 = 
+    v
   | otherwise =
     let 
-      (even, odd) = split x
-      (e, o) = (fft even, fft odd)
-      -- ! calculate twiddle factors
-      t = -2 * pi / (fromIntegral n)
-      k = Vec [0..]
-
-      p = exp( imagV $ k * pure t ) * o
-    in (lower + p) <> (upper - p)
-  where n = length x
+      (es, os) = split (runVec v)
+      (even, odd) = (Vec es, Vec os)
+      tf' = Vec $ fst $ split (runVec tf)
+      (e, o) = (fft' even tf', fft' odd tf')
+      p = tf * o
+    in
+      (e + p) <> (e - p)
+  where 
+    n = length' v
+    split :: [a] -> ([a], [a])
     split [] = ([], [])
     split [a] = ([a], [])
     split (a:b:c) = (a:x, b:y)
-      where (x,y) = split c
+        where (x,y) = split c
+
+ifft' :: Signal -> Signal -> Signal
+ifft' v tf = (/(n :+ 0.0)) <$> conjugate <$> fft' (conjugate <$> v) tf
+  where n = fromIntegral $ length' v
+
+low_pass'' :: Int -> Signal -> Signal
+low_pass'' freq v = 
+  let n = length' v 
+      tf = twiddle' $ fromIntegral n
+  in ifft' ((fft' v tf) * mask freq n) tf
 
 -- todo: 6. b) ifft
-ifft :: Signal -> Reader Signal Signal
+-- ifft :: Signal -> Reader Signal Signal
 -- ! fix me
-ifft v = mempty
+-- ifft v = mempty
 
 -- todo: 6. c) Implement low_pass using the new fft and ifft
-low_pass :: Int -> Signal -> Signal
+-- low_pass :: Int -> Signal -> Signal
 -- ! fix me
-low_pass freq v =
-  let n = length' v
-  in ifft (fft v * mask freq n)
+-- low_pass freq v =
+--   let n = length' v
+--   in ifft (fft v * mask freq n)
 
 -- todo: Testing
 main = do
@@ -170,6 +229,6 @@ main = do
   let s1 = fmap (\x -> sin(20*pi*x) + sin(40*pi*x)/2) $ Vec $ range 0 1 n 
   print(rd 3 s1)
 
-  print(rd 3 $ fmap (\(r:+_) -> r) $ low_pass' 15 $ realV s1)
+  -- print(rd 3 $ fmap (\(r:+_) -> r) $ low_pass' 15 $ realV s1)
 
-  print(rd 3 $ fmap (\(r:+_) -> r) $ low_pass 15 $ realV s1)
+  -- print(rd 3 $ fmap (\(r:+_) -> r) $ low_pass 15 $ realV s1)

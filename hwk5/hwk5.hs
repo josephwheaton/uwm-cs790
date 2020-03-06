@@ -141,7 +141,6 @@ low_pass' freq v =
   let n = length' v 
   in idft (dft v * mask freq n)
 
-
 -- ? twiddle factors for fft', ifft', fft, ifft
 twiddle' :: Double -> Signal
 twiddle' n = 

@@ -187,7 +187,7 @@ low_pass'' freq v =
 -- * (>>)   : sequence
 -- ? get next twiddle factor
 ntf :: MonadReader Signal m => m a -> m a
-ntf = local (\ctx -> Vec $ fst $ split (runVec $ ctx)) -- ? update local environment 
+ntf = local (\ctx -> Vec $ fst $ split (runVec $ ctx)) -- ? update local environment
 
 fft :: Signal -> Reader Signal Signal
 fft v = do

@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
@@ -18,12 +19,6 @@ class Monad m => MonadReader r m | m -> r where
 instance MonadReader r (Reader r) where
   ask = Reader id
   local f m = Reader $ runReader m . f
-
-split :: [a] -> ([a], [a])
-split [] = ([], [])
-split [a] = ([a], [])
-split (a:b:c) = (a:x, b:y)
-  where (x,y) = split c
 
 -- todo: 1. We will use the type alias Signal
 type Signal = Vec (Complex Double)
@@ -97,6 +92,13 @@ rd n = fmap (\x -> fromIntegral (round $ c * x) / c)
 length' :: Vec a -> Int
 length' (Vec x) = length x
 
+-- ? split this out of fft as it was getting annoying managing formatting
+split :: [a] -> ([a], [a])
+split [] = ([], [])
+split [a] = ([a], [])
+split (a:b:c) = (a:x, b:y)
+  where (x,y) = split c
+
 -- todo: 4. Implement a function to calculate the twiddle factor for DFT
 -- todo: 4. a) implement twiddle
 twiddle :: Double -> Double -> Signal
@@ -139,8 +141,8 @@ low_pass' freq v =
   let n = length' v 
   in idft (dft v * mask freq n)
 
--- ? below is suggestion before implementing fft with reader monad
--- ? fft', ifft', fft, ifft twiddle factors
+
+-- ? twiddle factors for fft', ifft', fft, ifft
 twiddle' :: Double -> Signal
 twiddle' n = 
   let
@@ -149,6 +151,7 @@ twiddle' n =
     y = -2.0 * pi / n
   in Vec $ (\ni -> exp(0.0 :+ (ni * y))) <$> ns
 
+-- ? below is class suggestion before implementing fft with reader monad
 fft' :: Signal -> Signal -> Signal
 fft' v tf
   | n == 1 = 
@@ -164,11 +167,6 @@ fft' v tf
       (e + p) <> (e - p)
   where 
     n = length' v
-    split :: [a] -> ([a], [a])
-    split [] = ([], [])
-    split [a] = ([a], [])
-    split (a:b:c) = (a:x, b:y)
-        where (x,y) = split c
 
 ifft' :: Signal -> Signal -> Signal
 ifft' v tf = (/(n :+ 0.0)) <$> conjugate <$> fft' (conjugate <$> v) tf
@@ -188,14 +186,17 @@ low_pass'' freq v =
 -- * (<=<)  : composition, similar to (.) 
 -- * (=<<)  : application, similar to ($) 
 -- * (>>)   : sequence
+-- ? get next twiddle factor
+ntf :: MonadReader Signal m => m a -> m a
+ntf = local (\ctx -> Vec $ fst $ split (runVec $ ctx)) -- ? update local environment 
+
 fft :: Signal -> Reader Signal Signal
 fft v = do
   let (e, o) = split (runVec v)
       (even, odd) = (Vec e, Vec o)
-  tf <- ask
-  e  <- fft even
-  o  <- fft odd
-  local (\ctx -> Vec $ fst $ split (runVec $ ctx)) ask
+  tf <- ask -- ? should be current twiddle factors
+  e  <- ntf $ fft even
+  o  <- ntf $ fft odd
   return $ 
     if (length' v) == 1 then v
     else
@@ -213,7 +214,7 @@ ifft v = do
       n = fromIntegral $ length' v
     in
       (/(n :+ 0.0)) <$> conjugate <$> forward
-
+      
 -- todo: 6. c) Implement low_pass using the new fft and ifft
 low_pass :: Int -> Signal -> Signal
 low_pass freq v = y
@@ -233,5 +234,6 @@ main = do
   print(rd 3 s1)
 
   print(rd 3 $ fmap (\(r:+_) -> r) $ low_pass' 15 $ realV s1)
-  print(rd 3 $ fmap (\(r:+_) -> r) $ low_pass'' 15 $ realV s1)
+  -- ? testing in-class suggestion
+  -- print(rd 3 $ fmap (\(r:+_) -> r) $ low_pass'' 15 $ realV s1)
   print(rd 3 $ fmap (\(r:+_) -> r) $ low_pass 15 $ realV s1)

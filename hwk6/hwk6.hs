@@ -258,7 +258,7 @@ makeNoise seed n low high = y
     nd = fromIntegral n
     ns = range 0 nd nd
     y = Vec $ (\_ -> evalState x (mkStdGen seed)) <$> ns -- ? init generator
-    x = (getRandom low high) >>= \result -> return result
+    x = (getRandom low high) >>= \r -> return r
 
 -- todo: 3. Testing
 

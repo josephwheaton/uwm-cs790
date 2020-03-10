@@ -242,7 +242,7 @@ instance MonadState s (State s) where
 
 getRandoms :: (Random a, RandomGen g) => Int -> (a, a) -> State ([a], g) [a]
 getRandoms 0 _      = do
-  (randoms, g) <- get
+  (randoms, _) <- get
   return $ reverse randoms
 getRandoms k (l, h) = do
   (vs, cg) <- get

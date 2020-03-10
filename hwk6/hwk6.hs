@@ -6,6 +6,7 @@
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 import Data.Complex
+import Debug.Trace
 import GHC.Base (liftA2)
 import System.Random
 
@@ -239,12 +240,15 @@ instance MonadState s (State s) where
   put s = State $ \_ -> ((), s)
   state = State
 
-getRandom :: (Random a, RandomGen g) => a -> a -> State g a
-getRandom l h = do
-  cg <- get
+getRandoms :: (Random a, RandomGen g) => Int -> (a, a) -> State ([a], g) [a]
+getRandoms 0 _      = do
+  (randoms, g) <- get
+  return $ reverse randoms
+getRandoms k (l, h) = do
+  (vs, cg) <- get
   let (v, ng) = randomR (l, h) cg
-  put (ng)
-  return v
+  put (v:vs, ng)
+  getRandoms (k-1) (l, h)
 
 evalState :: State g a -> g -> a
 evalState act = fst . runState act
@@ -253,12 +257,8 @@ execState :: State g a -> g -> g
 execState act = snd . runState act
 
 makeNoise :: Random a => Int -> Int -> a -> a -> Vec a
-makeNoise seed n low high = y
-  where
-    nd = fromIntegral n
-    ns = range 0 nd nd
-    y = Vec $ (\_ -> evalState x (mkStdGen seed)) <$> ns -- ? init generator
-    x = (getRandom low high) >>= \r -> return r
+makeNoise seed n low high =
+  Vec $ evalState (getRandoms n (low, high)) ([], mkStdGen seed)
 
 -- todo: 3. Testing
 

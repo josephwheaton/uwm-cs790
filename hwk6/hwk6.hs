@@ -250,15 +250,9 @@ getRandoms k (l, h) = do
   put (v:vs, ng)
   getRandoms (k-1) (l, h)
 
-evalState :: State g a -> g -> a
-evalState act = fst . runState act
-
-execState :: State g a -> g -> g
-execState act = snd . runState act
-
 makeNoise :: Random a => Int -> Int -> a -> a -> Vec a
 makeNoise seed n low high =
-  Vec $ evalState (getRandoms n (low, high)) ([], mkStdGen seed)
+  Vec $ fst $ runState (getRandoms n (low, high)) ([], mkStdGen seed)
 
 -- todo: 3. Testing
 

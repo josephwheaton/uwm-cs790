@@ -255,7 +255,6 @@ makeNoise seed n low high =
   Vec $ fst $ runState (getRandoms n (low, high)) ([], mkStdGen seed)
 
 -- todo: 3. Testing
-
 main = do
   let n' = 2^8
   let noise = makeNoise 0 n' (-1.0) 1.0

@@ -112,27 +112,29 @@ type FileState s =  StateT s IO FileAction
 find :: forall s. (FileInfo -> FileState s) -> FilePath -> FileState s
 find getState path = do
   names <- lift $ listDirectory path -- ? lec 11 lift out of list monad (double list inside IO monad)
-  iterate' names 
+  iterate names 
 
-  where iterate' :: [FilePath] -> FileState s
-        iterate' [name] = do
+  where iterate :: [FilePath] -> FileState s
+        iterate [name] = do
           let path' = path </> name
           i <- lift $ getInfo path'
           s <- getState i 
           return s
-        iterate' (name:names) = do
+        iterate (name:names) = do
           let path' = path </> name
           i <- lift $ getInfo path'
           s <- getState i
           case s of
             Done -> return s
-            Continue -> iterate' names
-            Skip -> iterate' names
+            Continue -> iterate names
+            Skip -> iterate names
 
 
--- ? getState should return a file state that decides how to fold file information, whether to skip a directory, and whether to stop
+-- ? getState should return a file state that decides how to fold file information, 
+-- ? whether to skip a directory, and whether to stop
 main = do
-  let downloads = "C:\\Users\\jwheaton\\Downloads"
+  let downloads = "C:\\Users\\tzhao\\Downloads"
+  -- let downloads = "C:\\Users\\jwheaton\\Downloads"
 
   let yearP = ((\(x,_,_) -> x) . toGregorian . utctDay) <$> timeP 
   let recurseP = yearP >? 2018

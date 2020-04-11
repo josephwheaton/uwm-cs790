@@ -122,7 +122,7 @@ find getState path = do
           let path' = path </> name
           info <- lift $ getInfo path'
           let isDirectory = runFileP searchP info
-          -- if isDirectory then traceM $ "path is directory: " ++ path' else traceM "Continuing..."
+          -- if isDirectory then traceM $ "Path is directory: " ++ path' else traceM "Continuing..."
           s <- getState info
           case s of
             Done -> return s

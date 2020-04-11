@@ -112,58 +112,38 @@ data FileAction = Done | Skip | Continue
 
 type FileState s =  StateT s IO FileAction
 
-getRecursiveContents :: FilePath -> IO [FilePath]
-getRecursiveContents topdir = do
-  names <- getDirectoryContents topdir
-  let properNames = filter (`notElem` [".", ".."]) names
-  paths <- forM properNames $ \name -> do
-    let path = topdir </> name
-    isDirectory <- doesDirectoryExist path
-    if isDirectory
-      then getRecursiveContents path
-      else 
-        traceM $ show $ [path]
-        return [path]
-  return (concat paths)
-
 find :: forall s. (FileInfo -> FileState s) -> FilePath -> FileState s
 find getState path = do
-  names <- lift $ listDirectory path -- ? lec 11 lift out of list monad (double list inside IO monad)
-  
-  iterate names 
+  names <- lift $ listDirectory path
+  iterate names
 
-      where iterate :: [FilePath] -> FileState s
-        iterate [name] = do
-          let path' = path </> name
-          info <- lift $ getInfo path'
-          s <- getState info
-          return s
-
+  where iterate :: [FilePath] -> FileState s
         iterate (name:names) = do
           let path' = path </> name
-          -- traceM $ path'
           info <- lift $ getInfo path'
-          s <- getState info
           let isDirectory = runFileP searchP info
-          names' <- if isDirectory 
-            then do 
-            mNames <- lift $ listDirectory path'
-            return mNames
-            else return []
-          let names'' = if isDirectory then names ++ names' else names
-          -- traceM $ show $ names''
+          -- if isDirectory then traceM $ "path is directory: " ++ path' else traceM "Continuing..."
+          s <- getState info
           case s of
             Done -> return s
-            Continue -> iterate names''
-            Skip -> iterate names''
-            -- Continue -> iterate names''
-            -- Skip -> iterate names''
+            Skip -> iterate names
+            Continue
+              | isDirectory -> do
+                  findSubpaths <- find getState path'
+                  case findSubpaths of
+                    Done -> return s
+                    otherwise -> iterate names
+              | otherwise -> iterate names
+        iterate [] = do
+          info <- lift $ getInfo path
+          s <- getState info
+          return s
 
 -- ? getState should return a file state that decides how to fold file information, 
 -- ? whether to skip a directory, and whether to stop
 main = do
-  -- let downloads = "C:\\Users\\tzhao\\Downloads"
-  let downloads = "C:\\Users\\jwheaton\\Downloads"
+  let downloads = "C:\\Users\\tzhao\\Downloads"
+  -- let downloads = "C:\\Users\\jwheaton\\Downloads"
 
   let yearP = ((\(x,_,_) -> x) . toGregorian . utctDay) <$> timeP 
   let recurseP = yearP >? 2018

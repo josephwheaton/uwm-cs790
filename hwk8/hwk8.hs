@@ -1,14 +1,14 @@
 
 {-
- -  <Decl> ::= { (<FunDecl> | <ValDecl>) }
+ -  <DeclList> ::= { (<FunDecl> | <ValDecl>) }
  -
- -  <FunDecl> ::= 'fun' <Ident> <Ident> '=' <Exp> 
+ -  <FunDecl> ::= 'fun' <Ident> <Ident> '=' <Expr> 
  -
  -  <ValDecl> ::= 'val' <Ident> '=' <Exp> 
  -
  -  <Expr> ::= <Comp> 
  -           | 'if' <Expr> 'then' <Expr> 'else' <Expr>
- -           | 'let' <Decl> { <Decl> } 'in' <Expr> 'end'
+ -           | 'let' <DeclList> 'in' <Expr> 'end'
  -           | 'fn' <Ident> '=>' <Expr>
  -
  -  <Comp> ::= <Plus> { ('>' | '=' | '<') <Plus> }
@@ -128,14 +128,89 @@ identifier = try $ do
 -- Parser for the (phrase) grammar
 
 prog :: Parser [Decl]         
-prog = skipMany space >> decl                              -- skip leading spaces
+prog = skipMany space >> declList                              -- skip leading spaces
 
-decl :: Parser [Decl]                                      -- parse a list of function or variable declarations
-decl = many $ valDecl <|> funDecl
+declList :: Parser [Decl]                                      -- parse a list of function or variable declarations
+declList = many $ valDecl <|> funDecl
 
 -- TODO
 
+valDecl :: Parser Decl
+valDecl = do
+  val_
+  id <- ident
+  symbol "="
+  exp <- expr
+  return (Val id exp)
 
+funDecl :: Parser Decl
+funDecl = do
+  fun_
+  fnId <- ident
+  id  <- ident
+  symbol "="
+  exp <- expr
+  return (Fun fnId id exp)
+
+var :: Parser Exp
+var = Var <$> identifier
+
+expr :: Parser Exp
+expr = compExpr <|> condExpr <|> letExpr <|> lambdaFnExpr
+
+compExpr :: Parser Exp
+compExpr = chainl1 term op where op = comp
+
+condExpr :: Parser Exp
+condExpr = do
+  if_
+  cond <- expr
+  then_
+  true <- expr
+  else_
+  false <- expr
+  return (If cond true false)
+
+letExpr :: Parser Exp
+letExpr = do
+  let_
+  decls <- declList
+  in_
+  exp <- expr
+  return (Let decls exp)
+
+lambdaFnExpr :: Parser Exp
+lambdaFnExpr = do
+  fun_
+  id <- ident
+  keyword "=>"
+  exp <- expr
+  return (Fn id exp)
+
+comp :: Parser Exp
+comp = chainl1 plus op
+  where op = choice [(LT <$ char '<'), (EQ <$ char '='), (GT <$ char '>')]
+
+plus :: Parser Exp
+plus = chainl1 mult op
+  where op = Plus <$ char '+' <|> Minus <$ char '-'
+
+mult :: Parser Exp
+mult = chainl1 app op
+ where op = Times <$ char '*' <|> Div <$ char '/'
+
+app :: Parser Exp
+app = many1 $ fact
+
+parens :: Parser a -> Parser a
+parens p = do
+  symbol "("
+  p' <- p
+  symbol ")"
+  return p'
+
+-- fact :: Parser Exp
+fact = choice [parens expr, integer, identifier]
 
 
 

@@ -2,14 +2,14 @@
 {-
  -  <DeclList> ::= { (<FunDecl> | <ValDecl>) }
  -
- -  <FunDecl> ::= 'fun' <Ident> <Ident> '=' <Expr> 
+ -  <FunDecl> ::= 'fun' <Ident> <Ident> '=' <Exp> 
  -
  -  <ValDecl> ::= 'val' <Ident> '=' <Exp> 
  -
  -  <Expr> ::= <Comp> 
- -           | 'if' <Expr> 'then' <Expr> 'else' <Expr>
- -           | 'let' <DeclList> 'in' <Expr> 'end'
- -           | 'fn' <Ident> '=>' <Expr>
+ -           | 'if' <Exp> 'then' <Exp> 'else' <Exp>
+ -           | 'let' <DeclList> 'in' <Exp> 'end'
+ -           | 'fn' <Ident> '=>' <Exp>
  -
  -  <Comp> ::= <Plus> { ('>' | '=' | '<') <Plus> }
  -
@@ -19,7 +19,7 @@
  -
  -  <App>  ::= <Fact> { <Fact> }
  -
- -  <Fact> ::= '(' <Expr> ')' 
+ -  <Fact> ::= '(' <Exp> ')' 
  -          |  <Integer>     
  -          |  <Identifier>
  -}
@@ -152,14 +152,14 @@ funDecl = do
   exp <- expr
   return (Fun fnId id exp)
 
+constant :: Parser Exp
+constant = Const <$> integer
+
 var :: Parser Exp
 var = Var <$> identifier
 
 expr :: Parser Exp
-expr = compExpr <|> condExpr <|> letExpr <|> lambdaFnExpr
-
-compExpr :: Parser Exp
-compExpr = chainl1 term op where op = comp
+expr = comp <|> condExpr <|> letExpr <|> lambdaFnExpr
 
 condExpr :: Parser Exp
 condExpr = do
@@ -189,18 +189,23 @@ lambdaFnExpr = do
 
 comp :: Parser Exp
 comp = chainl1 plus op
-  where op = choice [(LT <$ char '<'), (EQ <$ char '='), (GT <$ char '>')]
+  where op = Lt <$ symbol "<"
+         <|> Gt <$ symbol "="
+         <|> Eq <$ symbol ">"
 
 plus :: Parser Exp
 plus = chainl1 mult op
-  where op = Plus <$ char '+' <|> Minus <$ char '-'
+  where op = Plus <$ symbol "+" 
+         <|> Minus <$ symbol "-"
 
 mult :: Parser Exp
 mult = chainl1 app op
- where op = Times <$ char '*' <|> Div <$ char '/'
+ where op = Times <$ symbol "*" 
+        <|> Div <$ symbol "/"
 
 app :: Parser Exp
-app = many1 $ fact
+app = chainl1 factor op
+  where op = App <$ symbol ""
 
 parens :: Parser a -> Parser a
 parens p = do
@@ -209,11 +214,8 @@ parens p = do
   symbol ")"
   return p'
 
--- fact :: Parser Exp
-fact = choice [parens expr, integer, identifier]
-
-
-
+factor :: Parser Exp
+factor = parens expr <|> constant <|> var
 
 -- Test code ----------------------------------------------------------------------------------
 

@@ -6,8 +6,21 @@ import Network.HTTP.Conduit
 
 finish :: [IO () -> IO b] -- a list of actions, each takes a canceller IO monad
        -> Int             -- the number of actions that are allowed to complete
-       -> IO [b]          -- output messages of all actions
--- finish actions n =
+       -> IO [b]          -- output messages of all actionsx
+finish actions n =
+  do  recv <- newEmptyMVar
+      send <- newEmptyMVar
+      let runAction (f, id) = async $ f $ putMVar recv id >> takeMVar send
+      threads <- mapM runAction $ zip actions [1..]
+
+      let g ids = if length ids < n
+        then do id <- takeMVar recv
+          putMVar send ()
+          g (id:ids)
+        else mapM_ f $ zip threads [1..]
+          where f (t, id) = unless (id `elem` lst) $ cancel t
+        g []
+        mapM wait threads
 
 main = do
   let urls = [("http://www.yahoo.com/", "test1.txt"),

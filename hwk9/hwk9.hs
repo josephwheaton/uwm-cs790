@@ -15,22 +15,31 @@ finish actions count = do
   currentAction <- newEmptyMVar
   counter <- newEmptyMVar
   
+  -- ? run action asynchronously and put its actionId on currentAction
   -- runAction :: (IO () -> IO a, Integer) -> IO (Async a)
   let runAction (action, actionId) = async $ action $ putMVar currentAction actionId >> takeMVar counter
 
+  -- ? run (race) async actions in parallel associating each with an id
+  -- threads :: [Async a]
   threads <- mapM runAction $ zip actions [1..]
 
+  -- ? gather 'count' results of raced threads based on which completes first
   -- raceThreads :: [Integer] -> IO ()
   let raceThreads actionIds = 
         if length actionIds < count
         then do 
+          -- ? put completed actionId on list and "increment" counter
           actionId <- takeMVar currentAction
           putMVar counter ()
+          -- ? get the next completed action until 'count' reached
           raceThreads (actionId:actionIds)
         else mapM_ cancelThread $ zip threads [1..]
+          -- ? when max calls complete cancel others not in list, ignoring their results
           -- cancelThread :: (Async a, Integer) -> IO ()
           where cancelThread (action, actionId) = unless (actionId `elem` actionIds) (cancel action)
+  -- ? really just "gather" results of raced threads from line 24
   raceThreads []
+  -- ? wait for all asynchronous actions to complete
   mapM wait threads
 
 main :: IO ()

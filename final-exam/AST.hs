@@ -59,18 +59,18 @@ show_op e1 op e2 = "(" ++ show e1 ++ " " ++ op ++ " " ++ show e2 ++ ")"
 type PrettyPrint = ReaderT String (Writer String) ()
 
 -- run the PrettyPrint monad (of a declaration list) to return a string
-pp :: DeclList -> String
-pp lst = snd $ runWriter $ runReaderT (ppl lst) ""
+-- pp :: DeclList -> String
+-- pp lst = snd $ runWriter $ runReaderT (ppl lst) ""
 
 -- pretty print a list of declarations
-ppl :: DeclList -> PrettyPrint
-ppl (Decls decls) = mapM_ (\d -> ppd d >> tell "\n") decls
+-- ppl :: DeclList -> PrettyPrint
+-- ppl (Decls decls) = mapM_ (\d -> ppd d >> tell "\n") decls
 
 -- pretty print a declaration
-ppd :: Decl -> PrettyPrint
+-- ppd :: Decl -> PrettyPrint
 -- TODO
 
 -- pretty print an expression
-ppe :: Exp -> PrettyPrint
+-- ppe :: Exp -> PrettyPrint
 -- TODO
 

@@ -222,15 +222,22 @@ eval (App f x) = do
   traceM("Running eval App")
   f_v <- eval f
   x_v <- eval x
+  context <- ask
   case f_v of
     FVal (ident, x_id, fn) localContext ->
       case ident of
         -- ? lambda
         Nothing -> 
           let context' = [(x_id, x_v)] <> localContext
-            in local (const context') $ eval fn
+            in 
+              trace("Show applying Fn with param " ++ x_id ++ " and value " ++ show x_v)
+              local (const context') $ eval fn
         -- ? fun
-        Just _ -> eval fn
+        Just identifier -> 
+          let context' = [(x_id, x_v)] <> context
+            in
+              trace("Show applying Fun " ++ identifier ++ " with param " ++ x_id ++ " and value " ++ show x_v)
+              local (const context') $ eval fn
     _ -> throwError $ NotAFun f_v
 
 eval (Const i) = do
@@ -241,10 +248,10 @@ eval (Const i) = do
 runD :: DeclList -> String
 runD d = y 
   where Right y = runReaderT x []
-        x = do  
+        x = do
               a <- evalD d
               return $ "answers:\n" ++ toString a ++ "\n"
-            `catchError` (\e -> return $ show e ++ "\n") 
+            `catchError` (\e -> return $ show e ++ "\n")
         toString a = unlines $ map (\(x,v)-> "\t val " ++ x ++ " = " ++ show v) $ reverse a
 
 -- run an expression and print the results

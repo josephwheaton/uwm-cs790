@@ -59,18 +59,77 @@ show_op e1 op e2 = "(" ++ show e1 ++ " " ++ op ++ " " ++ show e2 ++ ")"
 type PrettyPrint = ReaderT String (Writer String) ()
 
 -- run the PrettyPrint monad (of a declaration list) to return a string
--- pp :: DeclList -> String
--- pp lst = snd $ runWriter $ runReaderT (ppl lst) ""
+pp :: DeclList -> String
+pp lst = snd $ runWriter $ runReaderT (ppl lst) ""
 
 -- pretty print a list of declarations
--- ppl :: DeclList -> PrettyPrint
--- ppl (Decls decls) = mapM_ (\d -> ppd d >> tell "\n") decls
+ppl :: DeclList -> PrettyPrint
+ppl (Decls decls) = mapM_ (\d -> ppd d >> tell "\n") decls
 
 -- pretty print a declaration
--- ppd :: Decl -> PrettyPrint
--- TODO
+ppd :: Decl -> PrettyPrint
+ppd (Fun f x fn) = do
+  space <- ask
+  tell $ "fun " ++ f ++ " " ++ x ++ " = " ++ ppe fn
+
+ppd (Val x e) = do
+  space <- ask
+  tell $ "val " ++ x ++ " = " ++ ppe e
 
 -- pretty print an expression
--- ppe :: Exp -> PrettyPrint
--- TODO
+ppe :: Exp -> PrettyPrint
+ppe (Lt e1 e2) = do
+  space <- ask
+  tell $ ppe e1 ++ " < " ++ ppe e2
+
+ppe (Gt e1 e2) = do
+  space <- ask
+  tell $ ppe e1 ++ " > " ++ ppe e2
+
+ppe (Eq e1 e2) = do
+  space <- ask
+  tell $ ppe e1 ++ " = " ++ ppe e2
+
+ppe (Plus e1 e2) = do
+  space <- ask
+  tell $ ppe e1 ++ " + " ++ ppe e2
+
+ppe (Minus e1 e2) = do
+  space <- ask
+  tell $ ppe e1 ++ " - " ++ ppe e2
+
+ppe (Times e1 e2) = do
+  space <- ask
+  tell $ ppe e1 ++ " * " ++ ppe e2
+
+ppe (Div e1 e2) = do
+  space <- ask
+  tell $ ppe e1 ++ " div " ++ ppe e2
+
+ppe (Var x) = do
+  space <- ask
+  tell $ show x
+
+ppe (If e1 e2 e3) = do
+  space <- ask
+  tell $ space ++ "if " ++ ppe e1
+  tell $ "\n" ++ space ++ " then \n"
+  tab $ ppe e2
+  tell $ "\n" ++ space ++ " else \n"
+  tab $ ppe e3
+
+ppe (Fn x fn) = do
+  space <- ask
+
+
+ppe (Let dls e) = do
+  space <- ask
+
+
+ppe (App fn x) = do
+  space <- ask
+  
+
+ppe (Const i) = do
+  space <- ask
 

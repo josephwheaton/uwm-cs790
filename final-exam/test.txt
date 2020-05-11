@@ -1,0 +1,19 @@
+
+fun fact x = if (x < 1) then 1 else x * fact (x - 1)
+
+fun gcd x = fn y => 
+   if x = y then x 
+   else if x < y then gcd x (y-x) else gcd (x-y) y
+
+fun gcd' x = fn y => 
+   let
+     fun mod x = fn y => if x > y then x - (x/y) * y else x
+   in
+     if y = 0 then x else gcd' y (mod x y)
+   end
+
+val a = let val y = 10 in fact y end
+
+val b = gcd 117 369
+
+val c = gcd' 117 369

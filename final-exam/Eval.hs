@@ -12,52 +12,6 @@ import Debug.Trace
 
 import AST
 
-{-
-data Decl = Fun String String Exp -- fun f x = e;
-          | Val String Exp        -- val x = e;
-
-newtype DeclList = Decls [Decl]
-
--- expressions
-data Exp = Lt Exp Exp     -- e1 < e2
-         | Gt Exp Exp     -- e1 > e2
-         | Eq Exp Exp     -- e1 = e2
-         | Plus Exp Exp   -- e1 + e2
-         | Minus Exp Exp  -- e1 - e2
-         | Times Exp Exp  -- e1 * e2
-         | Div Exp Exp    -- e1 div e2
-         | Var String     -- x
-         | If Exp Exp Exp -- if e0 then e1 else e2
-         | Fn String Exp  -- fn x => e
-         | Let DeclList Exp -- let val x = e0; fun f = e1; in e2 end
-         | App Exp Exp    -- e1 e2
-         | Const Integer  -- n
-
-instance Show DeclList where
-  show (Decls decls) = unlines $ map show decls
-
-instance Show Decl where
-  show (Fun f x e) = "fun " ++ f ++ " " ++ x ++ " = " ++ show e 
-  show (Val x e) = "val " ++ x ++ " = " ++ show e 
-
-instance Show Exp where
-  show (Const x) = show x
-  show (Plus e1 e2) = show_op e1 "+" e2
-  show (Times e1 e2) = show_op e1 "*" e2
-  show (Minus e1 e2) = show_op e1 "-" e2
-  show (Div e1 e2) = show_op e1 "/" e2
-  show (Lt e1 e2) = show_op e1 "<" e2
-  show (Gt e1 e2) = show_op e1 ">" e2
-  show (Eq e1 e2) = show_op e1 "=" e2
-  show (If e0 e1 e2) = "if " ++ show e0 ++ " then " ++ show e1 ++ " else " ++ show e2
-  show (Var s) = s
-  show (App e1 e2) = "(" ++ show e1 ++ " " ++ show e2 ++ ")"
-  show (Fn x e) = "(fn " ++ x ++ " => " ++ show e ++ ")"
-  show (Let (Decls decls) e) = "(let " ++ show decls ++ " in " ++ show e ++ " end)"
-
-show_op e1 op e2 = "(" ++ show e1 ++ " " ++ op ++ " " ++ show e2 ++ ")"
--}
-
 type Context = [(String, Val)]
 
 data Val = IntVal Integer
@@ -89,11 +43,11 @@ evalD (Decls []) = do
   return context
 evalD (Decls (x:xs)) =
   let evalD' (Val ident e) = do
-        traceM("Running evalD Val: " ++ ident)
+        -- traceM("Running evalD Val: " ++ ident)
         v <- eval e
         return (ident, v)
       evalD' (Fun ident x e) = do
-        traceM("Running evalD Fun: " ++ ident)
+        -- traceM("Running evalD Fun: " ++ ident)
         localContext <- ask
         return (ident, FVal (Just ident, x, e) localContext)
   in do
@@ -104,7 +58,7 @@ evalD (Decls (x:xs)) =
 
 eval :: Exp -> Eval Val
 eval (Lt e1 e2) = do
-  traceM("Running eval Lt")
+  -- traceM("Running eval Lt")
   v1 <- eval e1
   case v1 of
     IntVal i1 -> do
@@ -115,7 +69,7 @@ eval (Lt e1 e2) = do
     _ -> throwError $ NotABool v1
 
 eval (Gt e1 e2) = do
-  traceM("Running eval Gt")
+  -- traceM("Running eval Gt")
   v1 <- eval e1
   case v1 of
     IntVal i1 -> do
@@ -126,7 +80,7 @@ eval (Gt e1 e2) = do
     _ -> throwError $ NotABool v1
 
 eval (Eq e1 e2) = do
-  traceM("Running eval Eq")
+  -- traceM("Running eval Eq")
   v1 <- eval e1
   case v1 of
     IntVal i1 -> do
@@ -137,7 +91,7 @@ eval (Eq e1 e2) = do
     _ -> throwError $ NotABool v1
 
 eval (Plus e1 e2) = do
-  traceM("Running eval Plus")
+  -- traceM("Running eval Plus")
   v1 <- eval e1
   case v1 of
     IntVal i1 -> do
@@ -148,7 +102,7 @@ eval (Plus e1 e2) = do
     _ -> throwError $ NotAnInt v1
 
 eval (Minus e1 e2) = do
-  traceM("Running eval Minus")
+  -- traceM("Running eval Minus")
   v1 <- eval e1
   case v1 of
     IntVal i1 -> do
@@ -159,7 +113,7 @@ eval (Minus e1 e2) = do
     _ -> throwError $ NotAnInt v1
 
 eval (Times e1 e2) = do
-  traceM("Running eval Times")
+  -- traceM("Running eval Times")
   v1 <- eval e1
   case v1 of
     IntVal i1 -> do
@@ -170,7 +124,7 @@ eval (Times e1 e2) = do
     _ -> throwError $ NotAnInt v1
 
 eval (Div e1 e2) = do
-  traceM("Running eval Div")
+  -- traceM("Running eval Div")
   v1 <- eval e1
   case v1 of
     IntVal i1 -> do
@@ -184,16 +138,16 @@ eval (Div e1 e2) = do
     _ -> throwError $ NotAnInt v1
 
 eval (Var s) = do
-  traceM("Running eval Var: " ++ s)
+  -- traceM("Running eval Var: " ++ s)
   context <- ask
-  traceM("Here is context: " ++ show context)
+  -- traceM("Here is context: " ++ show context)
   let var = find (\x -> fst x == s) context
   case var of
     Nothing -> throwError $ VariableNotFound s
     Just (_, val) -> return val
 
 eval (If e0 e1 e2) = do
-  traceM("Running eval If")
+  -- traceM("Running eval If")
   v0 <- eval e0;
   case v0 of
     BoolVal p ->
@@ -207,19 +161,19 @@ eval (If e0 e1 e2) = do
     _ ->  throwError $ NotABool v0
 
 eval (Fn s e) = do
-  traceM("Running eval Fn: " ++ show s)
+  -- traceM("Running eval Fn: " ++ show s)
   localContext <- ask
   return $ FVal (Nothing, s, e) localContext
 
 eval (Let dl e) = do
-  traceM("Running eval Let")
+  -- traceM("Running eval Let")
   context <- ask
   additionalContext <- evalD dl
   let context' = additionalContext <> context
     in local (const context') $ eval e
 
 eval (App f x) = do
-  traceM("Running eval App")
+  -- traceM("Running eval App")
   f_v <- eval f
   x_v <- eval x
   context <- ask
@@ -230,18 +184,18 @@ eval (App f x) = do
         Nothing -> 
           let context' = [(x_id, x_v)] <> localContext
             in 
-              trace("Show applying Fn with param " ++ x_id ++ " and value " ++ show x_v)
+              -- trace("Show applying Fn with param " ++ x_id ++ " and value " ++ show x_v)
               local (const context') $ eval fn
         -- ? fun
         Just identifier -> 
           let context' = [(x_id, x_v)] <> context
             in
-              trace("Show applying Fun " ++ identifier ++ " with param " ++ x_id ++ " and value " ++ show x_v)
+              -- trace("Show applying Fun " ++ identifier ++ " with param " ++ x_id ++ " and value " ++ show x_v)
               local (const context') $ eval fn
     _ -> throwError $ NotAFun f_v
 
 eval (Const i) = do
-  traceM("Running eval Const: " ++ show i)
+  -- traceM("Running eval Const: " ++ show i)
   return $ IntVal i
 
 -- run a list of declarations and print the resulting context

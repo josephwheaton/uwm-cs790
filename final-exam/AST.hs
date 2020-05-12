@@ -58,6 +58,11 @@ show_op e1 op e2 = "(" ++ show e1 ++ " " ++ op ++ " " ++ show e2 ++ ")"
 --   writer for generating string
 type PrettyPrint = ReaderT String (Writer String) ()
 
+space' :: String -> String
+space' msg = 
+  let spaces = length msg
+    in take spaces $ repeat ' '
+
 tab :: MonadReader String m => m a -> m a
 tab = local (\s -> s ++ "   ")
 
@@ -76,92 +81,99 @@ ppl (Decls decls) = mapM_ (\d -> ppd d >> tell "\n") decls
 ppd :: Decl -> PrettyPrint
 ppd (Fun f x fn) = do
   space <- ask
-  tell $ space ++ "fun " ++ f ++ " " ++ x ++ " = "
-  ppe fn
+  let msg = space ++ "fun " ++ f ++ " " ++ x ++ " = "
+  tell $ msg
+  local (const $ space' msg) $ ppe fn
 
 ppd (Val x e) = do
   space <- ask
-  tell $ space ++ "val " ++ x ++ " = "
-  ppe e
+  let msg = space ++ "val " ++ x ++ " = "
+  tell $ msg
+  local (const $ space' msg) $ ppe e
 
 -- pretty print an expression
 ppe :: Exp -> PrettyPrint
 ppe (Lt e1 e2) = do
-  space <- ask
+  tell $ "("
   ppe e1
-  tell $ space ++ " < "
+  tell $ " < "
   ppe e2
+  tell $ ")"
 
 ppe (Gt e1 e2) = do
-  space <- ask
+  tell $ "("
   ppe e1
-  tell $ space ++ " > "
+  tell $ " > "
   ppe e2
+  tell $ ")"
 
 ppe (Eq e1 e2) = do
-  space <- ask
+  tell $ "("
   ppe e1
-  tell $ space ++ " = "
+  tell $ " = "
   ppe e2
+  tell $ ")"
 
 ppe (Plus e1 e2) = do
-  space <- ask
+  tell $ "("
   ppe e1
-  tell $ space ++ " + "
+  tell $ " + "
   ppe e2
+  tell $ ")"
 
 ppe (Minus e1 e2) = do
-  space <- ask
+  tell $ "("
   ppe e1
-  tell $ space ++ " - "
+  tell $ " - "
   ppe e2
+  tell $ ")"
 
 ppe (Times e1 e2) = do
-  space <- ask
+  tell $ "("
   ppe e1
-  tell $ space ++ " * "
+  tell $ " * "
   ppe e2
+  tell $ ")"
 
 ppe (Div e1 e2) = do
-  space <- ask
   ppe e1
-  tell $ space ++ " / "
+  tell $ " / "
   ppe e2
+  tell $ ")"
 
 ppe (Var x) = do
-  space <- ask
-  tell $ space ++ x
+  tell $ x
 
 ppe (If e1 e2 e3) = do
   space <- ask
-  tell $ space ++ "if "
-  local (const space) $ ppe e1
+  tell $ "if "
+  ppe e1
   tell $ "\n" ++ space ++ "then "
-  local (const space) $ ppe e2
+  ppe e2
   tell $ "\n" ++ space ++ "else "
-  local (const space) $ ppe e3
+  local (const (space ++ "     ")) $ ppe e3
 
 ppe (Fn x fn) = do
   space <- ask
-  tell $ space ++ "fn " ++ x ++ " => "
-  ppe fn
+  let msg = "fn " ++ x ++ " => "
+  tell msg
+  local (const $ space' (space ++ msg)) $ ppe fn
 
 ppe (Let dls e) = do
   space <- ask
-  tell $ space ++ "let\n"
-  tab $ ppl dls
-  tell $ "\n" ++ space ++ "in\n"
-  tab $ ppe e
-  tell $ space ++ "\n" ++ "end\n"
+  tell $ "let\n"
+  local (const (space ++ "   ")) $ ppl dls
+  tell $ space ++ "in\n"
+  tell $ space ++ "   "
+  local (const (space ++ "   ")) $ ppe e
+  tell $ "\n" ++ space ++ "end"
 
 ppe (App fn x) = do
-  space <- ask
-  tell $ space ++ "("
+  tell $ "("
   ppe fn
-  tell $ space ++ " " 
+  tell $ " "
   ppe x
-  tell $ space ++ ")"
+  tell $ ")"
 
 ppe (Const i) = do
-  space <- ask
-  tell $ space ++ show i
+  tell $ show i

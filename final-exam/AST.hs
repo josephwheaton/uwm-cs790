@@ -63,12 +63,6 @@ space' msg =
   let spaces = length msg
     in take spaces $ repeat ' '
 
-tab :: MonadReader String m => m a -> m a
-tab = local (\s -> s ++ "   ")
-
-newline :: MonadReader String m => m a -> m a
-newline = local (\s -> s ++ "\n")
-
 -- run the PrettyPrint monad (of a declaration list) to return a string
 pp :: DeclList -> String
 pp lst = snd $ runWriter $ runReaderT (ppl lst) ""
